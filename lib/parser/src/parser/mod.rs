@@ -217,10 +217,6 @@ mod tests {
 
     #[test]
     fn test_imports() {
-        /*
-        Tests a simple case, in which after one rule
-        produces an error, parsing must continue.
-         */
         let lexer = Lexer::from(
             r#"
 import foo.bar.Baz;
