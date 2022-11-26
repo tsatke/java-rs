@@ -98,6 +98,14 @@ constant_collection! {
     BOOLEAN_FALSE = "false",
 }
 
+constant_collection! {
+    ARITHMETIC_OPERATOR_VALUES:
+    OPERATOR_PLUS = "+",
+    OPERATOR_MINUS = "-",
+    OPERATOR_MULTIPLY = "*",
+    OPERATOR_DIVIDE = "/",
+}
+
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Token {
     Keyword(Keyword),
@@ -300,6 +308,14 @@ token_type! {
     Shift: new_shift,
     QuestionMark: new_question_mark,
     Colon: new_colon,
+}
+
+try_from_str! {
+    Operator:
+    Arithmetic: OPERATOR_PLUS,
+    Arithmetic: OPERATOR_MINUS,
+    Arithmetic: OPERATOR_MULTIPLY,
+    Arithmetic: OPERATOR_DIVIDE,
 }
 
 token_type! {

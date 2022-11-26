@@ -1,3 +1,4 @@
+use crate::parser::error::Error;
 use crate::parser::tree::{
     AnnotationModifiers, Block, ClassModifiers, EnumModifiers, Expression, FieldModifiers,
     Identifier, InterfaceModifiers, MethodModifiers, ParameterModifiers, QualifiedName,
@@ -5,6 +6,7 @@ use crate::parser::tree::{
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct CompilationUnit {
+    errors: Vec<Error>,
     package: Option<QualifiedName>,
     imports: Vec<ImportDeclaration>,
     types: Vec<TypeDeclaration>,
@@ -13,10 +15,23 @@ pub struct CompilationUnit {
 impl CompilationUnit {
     pub(in crate::parser) fn new() -> Self {
         Self {
+            errors: vec![],
             package: None,
             imports: vec![],
             types: vec![],
         }
+    }
+
+    pub(in crate::parser) fn add_error(&mut self, error: Error) {
+        self.errors.push(error);
+    }
+
+    pub fn errors(&self) -> &[Error] {
+        &self.errors
+    }
+
+    pub fn has_errors(&self) -> bool {
+        !self.errors.is_empty()
     }
 
     pub(in crate::parser) fn set_package(&mut self, package: QualifiedName) {

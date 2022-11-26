@@ -121,6 +121,12 @@ impl From<Span> for Identifier {
     }
 }
 
+impl Identifier {
+    pub fn span(&self) -> &Span {
+        &self.span
+    }
+}
+
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct QualifiedName {
     segments: Vec<Identifier>,
@@ -147,6 +153,10 @@ impl Default for QualifiedName {
 impl QualifiedName {
     pub fn new() -> Self {
         Self { segments: vec![] }
+    }
+
+    pub fn segments(&self) -> &[Identifier] {
+        &self.segments
     }
 
     pub(in crate::parser) fn push(&mut self, segment: Identifier) {

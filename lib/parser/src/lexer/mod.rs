@@ -4,7 +4,7 @@ use crate::lexer::source::Source;
 use crate::lexer::span::Span;
 pub use grapheme::*;
 
-use crate::lexer::token::{Ident, Keyword, Literal, Separator, Token};
+use crate::lexer::token::{Ident, Keyword, Literal, Operator, Separator, Token};
 
 mod grapheme;
 pub mod source;
@@ -114,6 +114,22 @@ impl<'a> TokenIterator<'a> {
                 let span = Span::new(start_index, self.char_index);
                 let keyword = Keyword::try_from_str(keyword, span).unwrap(); // never fails because we just matched it
                 return Some(keyword);
+            }
+        }
+        None
+    }
+
+    fn next_operator(&mut self) -> Option<Operator> {
+        // TODO: support more than just arithmetic operators
+        for &operator in token::ARITHMETIC_OPERATOR_VALUES.iter() {
+            if self.lexer.matches(self.char_index, operator) {
+                let start_index = self.char_index;
+                self.char_index += UnicodeSegmentation::graphemes(operator, true).count(); // technically this could be .len() since the keywords only consist of 1byte characters
+
+                let span = Span::new(start_index, self.char_index);
+                // TODO: the comment on the line below assumes that we've implemented all operators, which is not the case yet
+                let op = Operator::try_from_str(operator, span).unwrap(); // never fails because we just matched it
+                return Some(op);
             }
         }
         None
@@ -238,6 +254,11 @@ impl<'a> Iterator for TokenIterator<'a> {
             return Some(Token::Ident(identifier));
         }
 
+        // check for  operator
+        if let Some(operator) = self.next_operator() {
+            return Some(Token::Operator(operator));
+        }
+
         // no more tokens found or unknown token
 
         // TODO: handle unknown/invalid token
@@ -253,7 +274,7 @@ mod tests {
     use crate::lexer::token::Separator::{
         Dot, LeftBracket, LeftCurly, LeftPar, RightBracket, RightCurly, RightPar, Semicolon,
     };
-    use crate::lexer::token::{Ident, Literal, Token};
+    use crate::lexer::token::{Ident, Literal, Operator, Token};
     use crate::lexer::{is_java_whitespace, Lexer};
 
     #[test]
@@ -400,6 +421,20 @@ public static void main(String[] args) {
             Token::Separator(RightPar(Span::new(79, 80))),
             Token::Separator(Semicolon(Span::new(80, 81))),
             Token::Separator(RightCurly(Span::new(82, 83))),
+        ];
+        assert_eq!(lexer.tokens().collect::<Vec<Token>>(), expected);
+    }
+
+    #[test]
+    fn test_tokens_asterisk() {
+        let input = "a.b.*";
+        let lexer = Lexer::from(input);
+        let expected = vec![
+            Token::Ident(Ident::new(Span::new(0, 1))),
+            Token::Separator(Dot(Span::new(1, 2))),
+            Token::Ident(Ident::new(Span::new(2, 3))),
+            Token::Separator(Dot(Span::new(3, 4))),
+            Token::Operator(Operator::Arithmetic(Span::new(4, 5))),
         ];
         assert_eq!(lexer.tokens().collect::<Vec<Token>>(), expected);
     }
