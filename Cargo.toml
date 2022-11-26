@@ -1,0 +1,6 @@
+[workspace]
+members = [
+    "lib/parser",
+    "lib/compiler",
+    "rjavac",
+]
