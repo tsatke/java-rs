@@ -89,11 +89,8 @@ impl Parser<'_> {
             if let Some(token) = tokens.peek() {
                 match token {
                     Token::Keyword(Keyword::Package(_)) => {
-                        let package_token = tokens.next().unwrap(); // skip the package token
-                        debug_assert!(matches!(package_token, Token::Keyword(Keyword::Package(_))));
-
                         if let Some(name) =
-                            unwrap_or_add_error!(self.qualified_name(tokens), compilation_unit)
+                            unwrap_or_add_error!(self.package_declaration(tokens), compilation_unit)
                         {
                             compilation_unit.set_package(name);
                         }
@@ -110,7 +107,7 @@ impl Parser<'_> {
                     }
                     _ => {
                         compilation_unit.add_error(Error::UnexpectedToken {
-                            expected: vec!["<not implemented yet>"],
+                            expected: vec![],
                             found: tokens.next(),
                         });
                     }
@@ -121,6 +118,16 @@ impl Parser<'_> {
         }
 
         Ok(compilation_unit)
+    }
+
+    fn package_declaration(
+        &self,
+        tokens: &mut Peekable<impl Iterator<Item = Token>>,
+    ) -> Result<QualifiedName> {
+        let package_token = tokens.next().unwrap(); // skip the package token
+        debug_assert!(matches!(package_token, Token::Keyword(Keyword::Package(_))));
+
+        self.qualified_name(tokens)
     }
 
     fn import_declaration(
