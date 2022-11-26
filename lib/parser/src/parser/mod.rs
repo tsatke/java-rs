@@ -28,10 +28,6 @@ impl<'a> From<Lexer<'a>> for Parser<'a> {
 }
 
 impl<'a> Parser<'a> {
-    pub fn parse_str(input: &'a str) -> Result<CompilationUnit> {
-        Self::from(input).parse()
-    }
-
     pub fn parse(&self) -> Result<CompilationUnit> {
         let mut tokens = self.lexer.tokens();
         Self::parse_tokens(&mut tokens)
