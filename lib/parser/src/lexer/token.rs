@@ -163,6 +163,18 @@ macro_rules! token_type {
                     $(Self::$name(span) => span),*
                 }
             }
+
+            pub fn as_str(&self) -> &'static str {
+                match self {
+                    $(Self::$name(span) => stringify!($name)),*
+                }
+            }
+        }
+
+        impl core::fmt::Display for $token_type {
+            fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+                write!(f, "{}", self.as_str())
+            }
         }
     };
 }

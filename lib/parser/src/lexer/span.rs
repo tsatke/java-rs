@@ -1,5 +1,9 @@
 use crate::lexer::GraphemeIndex;
 
+pub trait Spanned {
+    fn span(&self) -> Option<Span>;
+}
+
 #[derive(Copy, Clone, PartialEq, Eq)]
 pub struct Span {
     start: GraphemeIndex,

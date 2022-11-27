@@ -1,4 +1,4 @@
-use crate::lexer::span::Span;
+use crate::lexer::span::{Span, Spanned};
 use crate::lexer::token::{Keyword, Operator, Separator, Token};
 use crate::lexer::Lexer;
 use crate::parser::error::Error;
@@ -37,6 +37,10 @@ impl<'a> Parser<'a> {
     pub fn resolve_span(&'a self, span: Span) -> Option<&'a str> {
         self.lexer.source().resolve_span(span)
     }
+
+    pub fn resolve_spanned(&'a self, spanned: &impl Spanned) -> Option<&'a str> {
+        spanned.span().and_then(|span| self.resolve_span(span))
+    }
 }
 
 macro_rules! unwrap_or_add_error {
@@ -73,7 +77,7 @@ impl Parser<'_> {
         match tokens.next_if(|t| matches!(t, Token::Separator(Separator::Semicolon(_)))) {
             Some(_) => (),
             None => compilation_unit.add_error(Error::UnexpectedToken {
-                expected: vec![";"],
+                expected: &[";"],
                 found: tokens.peek().cloned(),
             }),
         }
@@ -107,7 +111,7 @@ impl Parser<'_> {
                     }
                     _ => {
                         compilation_unit.add_error(Error::UnexpectedToken {
-                            expected: vec![],
+                            expected: &["<unknown>"],
                             found: tokens.next(),
                         });
                     }
@@ -180,14 +184,14 @@ impl Parser<'_> {
                         qualified_name.push(Identifier::from(op))
                     } else {
                         return Err(Error::UnexpectedToken {
-                            expected: vec!["*"],
+                            expected: &["*"],
                             found: tokens.peek().cloned(),
                         });
                     }
                 }
                 _ => {
                     return Err(Error::UnexpectedToken {
-                        expected: vec!["Ident"],
+                        expected: &["Ident"],
                         found: tokens.peek().cloned(), // as opposed to the pattern we're matching, peek returns the next token, which is what we want
                     });
                 }
@@ -282,7 +286,7 @@ import foo;"#,
         assert_eq!(
             tree.errors(),
             &[Error::UnexpectedToken {
-                expected: vec!["Ident"],
+                expected: &["Ident"],
                 found: Some(Token::Separator(Separator::Semicolon(Span::new(17, 18)))),
             }]
         );
@@ -301,7 +305,7 @@ import foo;"#,
         assert_eq!(
             result,
             Err(Error::UnexpectedToken {
-                expected: vec!["Ident"],
+                expected: &["Ident"],
                 found: None
             })
         );
@@ -313,7 +317,7 @@ import foo;"#,
         assert_eq!(
             result,
             Err(Error::UnexpectedToken {
-                expected: vec!["Ident"],
+                expected: &["Ident"],
                 found: Some(Token::Separator(Separator::Semicolon(Span::new(4, 5))))
             })
         );
@@ -395,6 +399,8 @@ public class Main {
                 (34, 37),
             ]))]
         );
+
+        // TODO: assert the rest of the tree
 
         println!("{:#?}", tree);
     }

@@ -1,6 +1,6 @@
 use bitflags::bitflags;
 
-use crate::lexer::span::Span;
+use crate::lexer::span::{Span, Spanned};
 use crate::lexer::token::Ident;
 use crate::lexer::GraphemeIndex;
 pub use block::*;
@@ -132,6 +132,15 @@ pub struct QualifiedName {
     segments: Vec<Identifier>,
 }
 
+impl Spanned for QualifiedName {
+    fn span(&self) -> Option<Span> {
+        match (self.segments.first(), self.segments.last()) {
+            (Some(first), Some(last)) => Some(Span::new(first.span.start(), last.span.end())),
+            _ => None,
+        }
+    }
+}
+
 impl<T, I> From<T> for QualifiedName
 where
     T: IntoIterator<Item = I>,
@@ -161,12 +170,5 @@ impl QualifiedName {
 
     pub(in crate::parser) fn push(&mut self, segment: Identifier) {
         self.segments.push(segment);
-    }
-
-    pub fn span(&self) -> Option<Span> {
-        match (self.segments.first(), self.segments.last()) {
-            (Some(first), Some(last)) => Some(Span::new(first.span.start(), last.span.end())),
-            _ => None,
-        }
     }
 }

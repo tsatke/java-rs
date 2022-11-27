@@ -1,3 +1,4 @@
+use crate::lexer::span::{Span, Spanned};
 use crate::parser::error::Error;
 use crate::parser::tree::{
     AnnotationModifiers, Block, ClassModifiers, EnumModifiers, Expression, FieldModifiers,
@@ -67,6 +68,17 @@ pub enum ImportDeclaration {
     StaticOnDemand(QualifiedName),
 }
 
+impl Spanned for ImportDeclaration {
+    fn span(&self) -> Option<Span> {
+        match self {
+            ImportDeclaration::SingleType(v) => v.span(),
+            ImportDeclaration::OnDemand(v) => v.span(),
+            ImportDeclaration::StaticSingleType(v) => v.span(),
+            ImportDeclaration::StaticOnDemand(v) => v.span(),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum TypeDeclaration {
     Class(ClassDeclaration),
@@ -82,6 +94,18 @@ pub struct ClassDeclaration {
     extends: Option<QualifiedName>,
     implements: Vec<QualifiedName>,
     members: Vec<ClassMember>,
+}
+
+impl ClassDeclaration {
+    pub(in crate::parser) fn new(modifiers: ClassModifiers, name: Identifier) -> Self {
+        Self {
+            modifiers,
+            name,
+            extends: None,
+            implements: vec![],
+            members: vec![],
+        }
+    }
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
