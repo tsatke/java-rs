@@ -1,10 +1,11 @@
+use core::iter::Peekable;
+
 use crate::lexer::span::{Span, Spanned};
 use crate::lexer::token::{Keyword, Operator, Separator, Token};
 use crate::lexer::Lexer;
 use crate::parser::error::Error;
 use crate::parser::tree::{CompilationUnit, Identifier, QualifiedName};
 use crate::ImportDeclaration;
-use core::iter::Peekable;
 
 pub mod error;
 pub mod tree;
@@ -41,19 +42,6 @@ impl<'a> Parser<'a> {
     pub fn resolve_spanned(&'a self, spanned: &impl Spanned) -> Option<&'a str> {
         spanned.span().and_then(|span| self.resolve_span(span))
     }
-}
-
-macro_rules! unwrap_or_add_error {
-    ($ex:expr, $comp_unit:expr) => {{
-        let result = $ex; // evaluate once
-        match result {
-            Ok(value) => Some(value),
-            Err(error) => {
-                $comp_unit.add_error(error);
-                None
-            }
-        }
-    }};
 }
 
 impl Parser<'_> {
@@ -93,19 +81,16 @@ impl Parser<'_> {
             if let Some(token) = tokens.peek() {
                 match token {
                     Token::Keyword(Keyword::Package(_)) => {
-                        if let Some(name) =
-                            unwrap_or_add_error!(self.package_declaration(tokens), compilation_unit)
-                        {
-                            compilation_unit.set_package(name);
+                        match self.package_declaration(tokens) {
+                            Ok(name) => compilation_unit.set_package(name),
+                            Err(error) => compilation_unit.add_error(error),
                         }
-
                         Self::expect_semicolon(tokens, &mut compilation_unit);
                     }
                     Token::Keyword(Keyword::Import(_)) => {
-                        if let Some(import) =
-                            unwrap_or_add_error!(self.import_declaration(tokens), compilation_unit)
-                        {
-                            compilation_unit.add_import(import);
+                        match self.import_declaration(tokens) {
+                            Ok(import) => compilation_unit.add_import(import),
+                            Err(error) => compilation_unit.add_error(error),
                         }
                         Self::expect_semicolon(tokens, &mut compilation_unit);
                     }
@@ -212,9 +197,10 @@ impl Parser<'_> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use crate::lexer::span::Span;
     use crate::lexer::Lexer;
+
+    use super::*;
 
     macro_rules! apply_rule {
         ($rule:expr, $input:expr) => {{
@@ -306,7 +292,7 @@ import foo;"#,
             result,
             Err(Error::UnexpectedToken {
                 expected: &["Ident"],
-                found: None
+                found: None,
             })
         );
     }
@@ -318,7 +304,7 @@ import foo;"#,
             result,
             Err(Error::UnexpectedToken {
                 expected: &["Ident"],
-                found: Some(Token::Separator(Separator::Semicolon(Span::new(4, 5))))
+                found: Some(Token::Separator(Separator::Semicolon(Span::new(4, 5)))),
             })
         );
     }
