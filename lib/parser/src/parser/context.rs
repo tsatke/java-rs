@@ -1,9 +1,9 @@
 use crate::lexer::token::{Keyword, Operator, Separator, Token};
 use crate::parser::error::Error;
+use crate::parser::tree::Identifier;
+use crate::parser::tree::QualifiedName;
 use crate::parser::Result;
-use crate::{
-    CompilationUnit, Identifier, ImportDeclaration, Parser, QualifiedName, TypeDeclaration,
-};
+use crate::{CompilationUnit, ImportDeclaration, Parser, TypeDeclaration};
 use std::iter::Peekable;
 
 pub(in crate::parser) struct ParseContext<'a, I>

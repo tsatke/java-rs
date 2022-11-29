@@ -1,5 +1,5 @@
 use crate::lexer::span::Span;
-use crate::parser::tree::QualifiedName;
+use crate::parser::tree::qualified_name::QualifiedName;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Expression {

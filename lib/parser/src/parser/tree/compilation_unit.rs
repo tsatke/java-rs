@@ -1,8 +1,10 @@
 use crate::lexer::span::{Span, Spanned};
 use crate::parser::error::Error;
+use crate::parser::tree::identifier::Identifier;
+use crate::parser::tree::qualified_name::QualifiedName;
 use crate::parser::tree::{
     AnnotationModifiers, Block, ClassModifiers, EnumModifiers, Expression, FieldModifiers,
-    Identifier, InterfaceModifiers, MethodModifiers, ParameterModifiers, QualifiedName,
+    InterfaceModifiers, MethodModifiers, ParameterModifiers,
 };
 
 #[derive(Debug, Clone, Eq, PartialEq)]

@@ -65,7 +65,8 @@ mod tests {
     use crate::lexer::span::Span;
     use crate::lexer::token::Separator;
     use crate::lexer::Lexer;
-    use crate::{ImportDeclaration, QualifiedName};
+    use crate::parser::tree::QualifiedName;
+    use crate::ImportDeclaration;
 
     use super::*;
 
