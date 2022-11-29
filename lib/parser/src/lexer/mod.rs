@@ -35,6 +35,7 @@ fn is_java_identifier_part(c: char) -> bool {
     is_java_identifier_start(c) || c.is_ascii_digit()
 }
 
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Lexer<'a> {
     source: Source<'a>,
 }

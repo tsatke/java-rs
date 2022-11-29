@@ -166,7 +166,7 @@ macro_rules! token_type {
 
             pub fn as_str(&self) -> &'static str {
                 match self {
-                    $(Self::$name(span) => stringify!($name)),*
+                    $(Self::$name(_) => stringify!($name)),*
                 }
             }
         }

@@ -121,6 +121,12 @@ impl From<Span> for Identifier {
     }
 }
 
+impl Spanned for Identifier {
+    fn span(&self) -> Option<Span> {
+        Some(self.span)
+    }
+}
+
 impl Identifier {
     pub fn span(&self) -> &Span {
         &self.span
