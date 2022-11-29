@@ -69,20 +69,29 @@ mod tests {
 
     use super::*;
 
+    macro_rules! parse {
+        ($input:expr) => {{
+            let input: &'static str = $input;
+            let lexer = Lexer::from(input);
+            let parser = Parser::from(lexer);
+            let result = parser.parse();
+            (parser, result)
+        }};
+    }
+
     #[test]
     fn test_erroneous_package_decl() {
         /*
         Tests a simple case, in which after one rule
         produces an error, parsing must continue.
          */
-        let lexer = Lexer::from(
+        let (_, tree) = parse!(
             r#"
 package foo.bar.;
 
-import foo;"#,
+import foo;
+"#
         );
-        let parser = Parser::from(lexer);
-        let tree = parser.parse();
         assert!(tree.has_errors());
         assert_eq!(
             tree.errors(),
@@ -102,16 +111,14 @@ import foo;"#,
 
     #[test]
     fn test_imports() {
-        let lexer = Lexer::from(
+        let (_, tree) = parse!(
             r#"
 import foo.bar.Baz;
 import static foo.bar.Baz.snafu;
 import foo.bar.*;
 import static foo.bar.Baz.*;
-"#,
+"#
         );
-        let parser = Parser::from(lexer);
-        let tree = parser.parse();
         assert!(!tree.has_errors());
         assert_eq!(
             tree.imports(),
@@ -144,7 +151,7 @@ import static foo.bar.Baz.*;
 
     #[test]
     fn test_small_example() {
-        let lexer = Lexer::from(
+        let (parser, tree) = parse!(
             r#"
 package foo.bar;
 
@@ -155,10 +162,8 @@ public class Main {
         System.out.println("Hello, World!");
     }
 }
-        "#,
+        "#
         );
-        let parser = Parser::from(lexer);
-        let tree = parser.parse();
         let package_name = parser
             .resolve_span(
                 tree.package()
