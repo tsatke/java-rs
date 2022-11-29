@@ -97,7 +97,7 @@ import foo;
         assert_eq!(
             tree.errors(),
             &[Error::UnexpectedToken {
-                expected: &["Ident"],
+                expected: &["identifier"],
                 found: Some(Token::Separator(Separator::Semicolon(Span::new(17, 18)))),
             }]
         );

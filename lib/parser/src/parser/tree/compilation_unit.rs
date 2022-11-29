@@ -6,6 +6,7 @@ use crate::parser::tree::{
     AnnotationModifiers, Block, ClassModifiers, EnumModifiers, Expression, FieldModifiers,
     InterfaceModifiers, MethodModifiers, ParameterModifiers,
 };
+use crate::Visibility;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct CompilationUnit {
@@ -91,6 +92,7 @@ pub enum TypeDeclaration {
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct ClassDeclaration {
+    visibility: Visibility,
     modifiers: ClassModifiers,
     name: Identifier,
     extends: Option<QualifiedName>,
@@ -99,8 +101,13 @@ pub struct ClassDeclaration {
 }
 
 impl ClassDeclaration {
-    pub(in crate::parser) fn new(modifiers: ClassModifiers, name: Identifier) -> Self {
+    pub(in crate::parser) fn new(
+        visibility: Visibility,
+        modifiers: ClassModifiers,
+        name: Identifier,
+    ) -> Self {
         Self {
+            visibility,
             modifiers,
             name,
             extends: None,
@@ -108,11 +115,16 @@ impl ClassDeclaration {
             members: vec![],
         }
     }
+
+    pub(in crate::parser) fn add_member(&mut self, member: ClassMember) {
+        self.members.push(member);
+    }
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct InterfaceDeclaration {
-    visibility: InterfaceModifiers,
+    visibility: Visibility,
+    modifiers: InterfaceModifiers,
     name: Identifier,
     extends: Vec<QualifiedName>,
     members: Vec<InterfaceMember>,
@@ -120,6 +132,7 @@ pub struct InterfaceDeclaration {
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct EnumDeclaration {
+    visibility: Visibility,
     modifiers: EnumModifiers,
     name: Identifier,
     implements: Vec<QualifiedName>,
@@ -128,6 +141,7 @@ pub struct EnumDeclaration {
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct AnnotationDeclaration {
+    visibility: Visibility,
     modifiers: AnnotationModifiers,
     name: Identifier,
     members: Vec<AnnotationMember>,
@@ -164,6 +178,7 @@ pub enum AnnotationMember {
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct FieldDeclaration {
+    visibility: Visibility,
     modifiers: FieldModifiers,
     name: Identifier,
     field_type: QualifiedName,
@@ -172,6 +187,7 @@ pub struct FieldDeclaration {
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct MethodDeclaration {
+    visibility: Visibility,
     modifiers: MethodModifiers,
     return_type: Option<QualifiedName>,
     parameters: Vec<Parameter>,
@@ -188,6 +204,7 @@ pub struct Parameter {
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct ConstructorDeclaration {
+    visibility: Visibility,
     modifiers: MethodModifiers,
     parameters: Vec<Parameter>,
     throws: Vec<QualifiedName>,

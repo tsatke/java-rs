@@ -73,3 +73,16 @@ fn to_grapheme_indices(s: &str) -> Vec<(usize, char)> {
         .map(|(i, s)| (i, char::from_str(s).unwrap()))
         .collect()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_translate_indices() {
+        let source = Source::from("Hello, world!");
+        assert_eq!(source.translate_indices(0.into(), 5.into()), Some("Hello"));
+        assert_eq!(source.translate_indices(7.into(), 12.into()), Some("world"));
+        assert_eq!(source.translate_indices(12.into(), 13.into()), Some("!"));
+    }
+}

@@ -2,8 +2,12 @@ use crate::lexer::token::{Keyword, Operator, Separator, Token};
 use crate::parser::error::Error;
 use crate::parser::tree::Identifier;
 use crate::parser::tree::QualifiedName;
+use crate::parser::tree::Visibility;
 use crate::parser::Result;
-use crate::{CompilationUnit, ImportDeclaration, Parser, TypeDeclaration};
+use crate::{
+    ClassDeclaration, ClassMember, ClassModifiers, CompilationUnit, ImportDeclaration, Parser,
+    TypeDeclaration,
+};
 use std::iter::Peekable;
 
 pub(in crate::parser) struct ParseContext<'a, I>
@@ -44,20 +48,29 @@ where
         self.compilation_unit();
     }
 
+    fn expect_token<F>(&mut self, expected: &'static [&'static str], f: F) -> Option<Token>
+    where
+        F: FnOnce(&I::Item) -> bool,
+    {
+        match self.tokens.next_if(f) {
+            Some(t) => Some(t),
+            None => {
+                self.compilation_unit.add_error(Error::UnexpectedToken {
+                    expected,
+                    found: self.tokens.peek().cloned(),
+                });
+                None
+            }
+        }
+    }
+
     /// Peeks one token, and consumes it if it is a semicolon.
     ///
     /// If the token is not a semicolon, an error is added to the compilation unit.
     fn expect_semicolon(&mut self) {
-        match self
-            .tokens
-            .next_if(|t| matches!(t, Token::Separator(Separator::Semicolon(_))))
-        {
-            Some(_) => (),
-            None => self.compilation_unit.add_error(Error::UnexpectedToken {
-                expected: &[";"],
-                found: self.tokens.peek().cloned(),
-            }),
-        }
+        self.expect_token(&[";"], |t| {
+            matches!(t, Token::Separator(Separator::Semicolon(_)))
+        });
     }
 
     fn compilation_unit(&mut self) {
@@ -86,8 +99,116 @@ where
     }
 
     fn type_declaration(&mut self) -> Result<TypeDeclaration> {
-        self.tokens.by_ref().for_each(|_| {}); // drain the iterator
-        Err(Error::NotImplemented(None)) // TODO: implement
+        let visibility = self.visibility()?;
+        let class_modifiers = self.class_modifiers()?;
+        match self
+            .tokens
+            .next_if(|t| matches!(t, Token::Keyword(Keyword::Class(_))))
+        {
+            Some(_) => {}
+            None => {
+                self.compilation_unit.add_error(Error::UnexpectedToken {
+                    expected: &["class"],
+                    found: self.tokens.peek().cloned(),
+                });
+            }
+        };
+        let name = self.identifier()?;
+        let mut class_declaration = ClassDeclaration::new(visibility, class_modifiers, name);
+
+        // TODO: extends, implements
+
+        self.expect_token(&["{"], |t| {
+            matches!(t, Token::Separator(Separator::LeftCurly(_)))
+        });
+
+        while let None = self
+            .tokens
+            .next_if(|t| matches!(t, Token::Separator(Separator::RightCurly(_))))
+        {
+            match self.class_member() {
+                Ok(member) => class_declaration.add_member(member),
+                Err(e) => self.compilation_unit.add_error(e),
+            };
+        }
+
+        Ok(TypeDeclaration::Class(class_declaration))
+    }
+
+    fn class_member(&mut self) -> Result<ClassMember> {
+        let visibility = self.visibility()?;
+        // TODO: modifiers
+        let name = self.identifier()?;
+        self.expect_token(&["("], |t| {
+            matches!(t, Token::Separator(Separator::LeftParen(_)))
+        });
+        // TODO: parameters
+        self.expect_token(&[")"], |t| {
+            matches!(t, Token::Separator(Separator::RightParen(_)))
+        });
+        self.expect_token(&["{"], |t| {
+            matches!(t, Token::Separator(Separator::LeftCurly(_)))
+        });
+        // TODO: block
+        self.expect_token(&["}"], |t| {
+            matches!(t, Token::Separator(Separator::RightCurly(_)))
+        });
+
+        Err(Error::NotImplemented(None))
+    }
+
+    fn identifier(&mut self) -> Result<Identifier> {
+        match self.tokens.next_if(|t| matches!(t, Token::Ident(_))) {
+            Some(Token::Ident(id)) => Ok(Identifier::from(id)),
+            v @ _ => Err(Error::UnexpectedToken {
+                expected: &["identifier"],
+                found: v,
+            }),
+        }
+    }
+
+    fn visibility(&mut self) -> Result<Visibility> {
+        let mut vis = Visibility::empty();
+
+        while let Some(token) = self.tokens.next_if(|t| {
+            matches!(
+                t,
+                Token::Keyword(Keyword::Public(_))
+                    | Token::Keyword(Keyword::Protected(_))
+                    | Token::Keyword(Keyword::Private(_))
+            )
+        }) {
+            match token {
+                Token::Keyword(Keyword::Public(_)) => vis.insert(Visibility::Public),
+                Token::Keyword(Keyword::Protected(_)) => vis.insert(Visibility::Protected),
+                Token::Keyword(Keyword::Private(_)) => vis.insert(Visibility::Private),
+                _ => unreachable!(),
+            }
+        }
+
+        Ok(vis)
+    }
+
+    fn class_modifiers(&mut self) -> Result<ClassModifiers> {
+        let mut mods = ClassModifiers::empty();
+
+        while let Some(token) = self.tokens.next_if(|t| {
+            matches!(
+                t,
+                Token::Keyword(Keyword::Abstract(_))
+                    | Token::Keyword(Keyword::Final(_))
+                    | Token::Keyword(Keyword::Static(_))
+            )
+        }) {
+            match token {
+                Token::Keyword(Keyword::Abstract(_)) => mods.insert(ClassModifiers::Abstract),
+                Token::Keyword(Keyword::Final(_)) => mods.insert(ClassModifiers::Final),
+                Token::Keyword(Keyword::Static(_)) => mods.insert(ClassModifiers::Static),
+                _ => unreachable!(),
+            }
+        }
+
+        Ok(mods)
     }
 
     fn package_declaration(&mut self) -> Result<QualifiedName> {
@@ -150,7 +271,7 @@ where
                 }
                 _ => {
                     return Err(Error::UnexpectedToken {
-                        expected: &["Ident"],
+                        expected: &["identifier"],
                         found: self.tokens.peek().cloned(), // as opposed to the pattern we're matching, peek returns the next token, which is what we want
                     });
                 }
@@ -209,7 +330,7 @@ mod tests {
         assert_eq!(
             result,
             Err(Error::UnexpectedToken {
-                expected: &["Ident"],
+                expected: &["identifier"],
                 found: None,
             })
         );
@@ -221,7 +342,7 @@ mod tests {
         assert_eq!(
             result,
             Err(Error::UnexpectedToken {
-                expected: &["Ident"],
+                expected: &["identifier"],
                 found: Some(Token::Separator(Separator::Semicolon(Span::new(4, 5)))),
             })
         );
